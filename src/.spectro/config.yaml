@@ -1,0 +1,24 @@
+version: "1.0"
+workflow:
+  retry_limit: 3
+  fail_fast: true
+  timeout_seconds: 900
+  require_human_approval_for_scope_changes: true
+  human_approval_stages: [plan, completed]
+recovery:
+  automatic_correction: true
+  rerun_gates_after_environment_fix: true
+gates:
+  required: [build, static-analysis, security, unit-tests, acceptance]
+  optional: [integration-tests, performance]
+  commands:
+    build: ""
+    static-analysis: ""
+    security: ""
+    unit-tests: ""
+    integration-tests: ""
+    performance: ""
+    acceptance: ""
+paths:
+  features: .spectro/features
+  evidence: evidence

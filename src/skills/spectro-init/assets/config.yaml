@@ -1,0 +1,22 @@
+# spectro-managed: true
+version: "1.0"
+paths:
+  root: .spectro
+  features: .spectro/features
+  templates: .spectro/templates
+  evidence: evidence
+workflow:
+  states: [pending, running, completed, failed, blocked, waiting_input, invalidated]
+  retry_limit: 3
+  fail_fast: true
+  timeout_seconds: 900
+  require_human_approval_for_scope_changes: true
+  human_approval_stages: [plan, completed]
+recovery:
+  automatic_correction: false
+  preserve_evidence: true
+  invalidate_on_change: true
+gates:
+  required: []
+  optional: []
+  commands: {}
