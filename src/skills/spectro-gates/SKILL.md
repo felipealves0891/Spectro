@@ -17,7 +17,7 @@ Use this skill after implementation or after a correction that invalidates prior
 
 ## Workflow
 
-1. Resolve and validate the absolute project root, then resolve the feature directory and record the code revision, configuration version, artifact hashes, and execution ID.
+1. Capture the initial working directory before changing location. If `ProjectRoot` is not supplied, walk its ancestors until finding `.spectro` and use the directory immediately before `.spectro` as the absolute project root. Then resolve the feature directory and record the code revision, configuration version, artifact hashes, and execution ID.
 2. Load configured gates and classify each as required or optional.
 3. Run gates in fail-fast order: build, static analysis, security, unit tests, integration tests, performance when enabled, then acceptance.
 4. Create an isolated output directory for every gate, expose it as `SPECTRO_GATE_OUTPUT_DIR`, and capture command, exit status, duration, tool version, concise diagnostics, output files, and evidence path.
@@ -49,7 +49,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File skills/spectro-gates/scripts
 
 Configure commands in `.spectro/config.yaml` under `gates.commands`. An empty command produces a visible `blocked` result; it is never treated as a pass. Validate an existing report with `scripts/validate_gates.ps1`.
 
-Every configured command runs with `ProjectRoot` as its working directory. Relative paths in gate commands therefore resolve from the project root, not from the skill directory, feature directory, or caller's current directory. The generated `gates.json` records this absolute path as `project_root`.
+Every configured command runs with the resolved project root as its working directory. When `ProjectRoot` is omitted, the runner finds the nearest ancestor `.spectro` directory from the initial working directory and uses its parent as the project root. Relative paths in gate commands therefore resolve from the project root, not from the skill directory, feature directory, or caller's current directory. The generated `gates.json` records this absolute path as `project_root`.
 
 Gate outputs are stored under `.spectro/features/<feature>/outputs/<execution-id>/<gate>/`. Audit evidence is stored under `.spectro/features/<feature>/outputs/<execution-id>/evidence/`. Commands that need to create files should use the absolute path in `SPECTRO_GATE_OUTPUT_DIR`; `gates.json` and `state.json` remain in the feature directory.
 

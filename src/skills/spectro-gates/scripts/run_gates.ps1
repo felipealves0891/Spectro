@@ -1,12 +1,42 @@
 param(
     [string]$FeatureId = "workspace",
     [string]$ConfigPath = ".spectro/config.yaml",
-    [string]$ProjectRoot = (Get-Location).Path,
+    [string]$ProjectRoot = "",
     [switch]$ContinueOnFailure
 )
 
 $ErrorActionPreference = "Stop"
-$root = (Resolve-Path -LiteralPath $ProjectRoot).Path
+$initialPath = (Get-Location).Path
+
+function Find-ProjectRoot([string]$StartPath) {
+    $current = (Resolve-Path -LiteralPath $StartPath).Path
+
+    while ($current) {
+        $currentLeaf = Split-Path -Leaf $current.TrimEnd('\')
+        if ($currentLeaf -eq '.spectro' -and (Test-Path -LiteralPath $current -PathType Container)) {
+            $parent = Split-Path -Parent $current
+            if ($parent) { return (Resolve-Path -LiteralPath $parent).Path }
+        }
+
+        $spectroPath = Join-Path $current '.spectro'
+        if (Test-Path -LiteralPath $spectroPath -PathType Container) {
+            return (Resolve-Path -LiteralPath $current).Path
+        }
+
+        $parent = Split-Path -Parent $current
+        if (-not $parent -or $parent -eq $current) { break }
+        $current = $parent
+    }
+
+    throw "Could not find an ancestor .spectro directory from the initial path: $StartPath"
+}
+
+if ([string]::IsNullOrWhiteSpace($ProjectRoot)) {
+    $root = Find-ProjectRoot $initialPath
+} else {
+    $root = (Resolve-Path -LiteralPath $ProjectRoot).Path
+}
+
 if (-not (Test-Path -LiteralPath $root -PathType Container)) {
     throw "ProjectRoot must resolve to an existing directory: $root"
 }

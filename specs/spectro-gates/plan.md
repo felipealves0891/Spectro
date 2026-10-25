@@ -3,7 +3,8 @@
 **Especificação de origem:** `specs/spectro-gates/spec.md`  
 **Versão do plano:** 1.0  
 **Status:** Proposto  
-**Escopo:** executar todos os comandos de gate na raiz absoluta do projeto
+**Escopo:** descobrir e usar a raiz absoluta do projeto ao executar todos os
+comandos de gate
 
 ## 1. Objetivo do plano
 
@@ -15,20 +16,26 @@ da pasta onde o skill está instalado.
 
 ## 2. Diagnóstico e decisão técnica
 
-O `run_gates.ps1` já resolve `ProjectRoot` para localizar configuração,
-feature e evidências, mas o `run_gate.ps1` cria um `Start-Job` sem receber a
-raiz do projeto. O job pode iniciar com um diretório diferente daquele usado
-para resolver os artefatos.
+O runner pode ser iniciado enquanto o diretório atual aponta para a pasta do
+skill. Nesse caso, assumir o diretório atual como `ProjectRoot` faz com que
+comandos relativos sejam executados fora do projeto. A raiz deve ser obtida a
+partir do diretório inicial capturado antes de qualquer mudança de localização:
+subir pelos ancestrais até encontrar `.spectro` e usar o diretório pai dessa
+pasta. O `run_gate.ps1` continua precisando receber essa raiz para o
+`Start-Job`, pois o job pode iniciar com um diretório diferente.
 
 A solução será explícita e centralizada:
 
-1. `run_gates.ps1` resolve e valida a raiz absoluta.
-2. O runner principal passa essa raiz ao `run_gate.ps1` em cada execução.
-3. `run_gate.ps1` recebe um parâmetro `WorkingDirectory` obrigatório para as
+1. `run_gates.ps1` captura o diretório inicial imediatamente ao começar.
+2. Se `ProjectRoot` não foi informado, procura `.spectro` no diretório inicial
+   e nos ancestrais; a raiz é o diretório pai da primeira ocorrência.
+3. `run_gates.ps1` resolve e valida a raiz absoluta.
+4. O runner principal passa essa raiz ao `run_gate.ps1` em cada execução.
+5. `run_gate.ps1` recebe um parâmetro `WorkingDirectory` obrigatório para as
    execuções iniciadas pelo runner principal.
-4. Dentro do job, o runner faz `Set-Location` para o diretório recebido antes de
+6. Dentro do job, o runner faz `Set-Location` para o diretório recebido antes de
    criar/executar o scriptblock do comando.
-5. O relatório registra o caminho absoluto efetivamente utilizado em
+7. O relatório registra o caminho absoluto efetivamente utilizado em
    `project_root`.
 
 Não será feita alteração textual nos comandos configurados, nem será
@@ -39,6 +46,11 @@ responsabilidade do runner.
 
 ### 3.1 `src/skills/spectro-gates/scripts/run_gates.ps1`
 
+- Capturar o diretório atual na primeira instrução executável, antes de
+  qualquer `Set-Location` ou resolução relativa.
+- Tornar `ProjectRoot` opcional para permitir a descoberta automática.
+- Implementar a busca ascendente por `<diretório>/.spectro`, encerrando no
+  diretório raiz do volume; usar o `Parent` da pasta encontrada como `$root`.
 - Validar que `ProjectRoot` existe e é um diretório antes de iniciar a
   execução.
 - Normalizar o caminho absoluto uma única vez.
@@ -87,7 +99,10 @@ O fluxo esperado será:
 
 ```text
 invocação
-  -> resolve ProjectRoot absoluto
+  -> captura diretório inicial
+  -> procura .spectro nos ancestrais
+  -> usa o pai de .spectro como raiz do projeto
+  -> resolve e valida raiz absoluta
   -> valida diretório
   -> carrega config e cria evidências
   -> run_gate(command, WorkingDirectory=ProjectRoot)
@@ -115,13 +130,14 @@ Os testes devem ser determinísticos e usar um projeto temporário com:
 
 | ID | Cenário | Resultado esperado |
 |---|---|---|
-| T-ROOT-001 | Invocar de uma subpasta usando `-ProjectRoot` | O comando encontra o arquivo relativo na raiz. |
+| T-ROOT-001 | Invocar de uma subpasta sem `-ProjectRoot` | O runner encontra `.spectro`, usa seu pai como raiz e o comando encontra o arquivo relativo. |
 | T-ROOT-002 | Executar dois gates | Ambos registram o mesmo diretório absoluto. |
-| T-ROOT-003 | Executar por `Start-Job` | O diretório observado pelo comando é a raiz, não a pasta do script. |
+| T-ROOT-003 | Invocar a partir da pasta do skill e executar por `Start-Job` | O diretório observado é a raiz do projeto, não a pasta do skill. |
 | T-ROOT-004 | Informar raiz inexistente | Falha explícita antes do primeiro gate. |
 | T-ROOT-005 | Validar relatório gerado | `project_root` está presente e o contrato permanece válido. |
 | T-ROOT-006 | Usar timeout e fail-fast | Comportamento anterior permanece inalterado. |
 | T-ROOT-007 | Configurar comando vazio | Gate continua `blocked`, sem aprovação indevida. |
+| T-ROOT-008 | Iniciar fora de qualquer projeto com `.spectro` ancestral | Falha explícita antes de criar ou executar gates. |
 
 ### 5.2 Regressão
 
@@ -135,8 +151,8 @@ Os testes devem ser determinísticos e usar um projeto temporário com:
 ## 6. Sequência de implementação
 
 1. Atualizar o contrato documentado do relatório.
-2. Alterar `run_gate.ps1` para aceitar e aplicar o diretório de trabalho.
-3. Alterar `run_gates.ps1` para validar e propagar a raiz.
+2. Alterar `run_gates.ps1` para capturar o caminho inicial e descobrir a raiz pelo `.spectro`.
+3. Alterar `run_gate.ps1` para aceitar e aplicar o diretório de trabalho.
 4. Atualizar `validate_gates.ps1` conforme a obrigatoriedade de
    `project_root`.
 5. Atualizar `SKILL.md` com o comportamento operacional.
@@ -152,6 +168,12 @@ Os testes devem ser determinísticos e usar um projeto temporário com:
 Mitigação: a alteração formaliza o contrato; comandos que precisarem de outro
 diretório deverão explicitar isso no próprio comando, sem alterar o diretório
 de trabalho padrão dos gates.
+
+### Risco: `.spectro` aninhado ou múltiplas ocorrências
+
+Mitigação: usar a ocorrência ancestral mais próxima do diretório capturado e
+documentar que ela define o projeto ativo. `ProjectRoot` explícito continua
+disponível para cenários que exigem outra raiz.
 
 ### Risco: caminhos absolutos no relatório quebrarem consumidores
 
