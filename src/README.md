@@ -142,6 +142,111 @@ O resultado fica em `gates.json`. Os outputs dos gates e as evidências ficam em
 O diretório específico de cada gate é disponibilizado pela variável de
 ambiente `SPECTRO_GATE_OUTPUT_DIR`.
 
+### Saída esperada
+
+O comando do gate não precisa produzir um formato específico: não é necessário
+imprimir JSON, uma mensagem determinada ou qualquer outro marcador de sucesso.
+O runner considera o código de saída do comando:
+
+- código `0`: gate `passed`;
+- código diferente de `0`: gate `failed`;
+- timeout: gate `blocked`;
+- erro do próprio runner ou resultado ilegível: gate `error`.
+
+stdout e stderr são capturados no arquivo de evidência e usados nos diagnósticos
+quando o gate falha, mas não são interpretados para decidir se o gate passou.
+Se o comando precisar produzir arquivos, eles devem ser gravados em
+`$env:SPECTRO_GATE_OUTPUT_DIR`; esses arquivos são apenas inventariados no
+relatório.
+
+O runner imprime no console o relatório completo em JSON e também grava esse
+conteúdo em `.spectro/features/001-login/gates.json`. A execução retorna código
+de saída `0` somente quando todos os gates obrigatórios passam. Em caso de
+`failed`, `blocked` ou `error` em um gate obrigatório, o relatório ainda é
+gravado, mas o processo retorna código `1`.
+
+Exemplo reduzido de uma execução aprovada:
+
+```json
+{
+  "schema_version": "1.0",
+  "feature_id": "001-login",
+  "execution_id": "gate-20261025T220000Z",
+  "project_root": "C:/projetos/minha-api",
+  "code_revision": "a1b2c3d",
+  "started_at": "2026-10-25T22:00:00.0000000Z",
+  "duration_ms": 18420,
+  "gates": [
+    {
+      "id": "GATE-001",
+      "name": "build",
+      "required": true,
+      "status": "passed",
+      "command": "dotnet build --no-restore",
+      "exit_code": 0,
+      "duration_ms": 8120,
+      "diagnostics": [],
+      "evidence": [
+        ".spectro/features/001-login/outputs/gate-20261025T220000Z/evidence/01-build.log"
+      ],
+      "output_directory": ".spectro/features/001-login/outputs/gate-20261025T220000Z/build",
+      "output_files": [],
+      "output_file_count": 0
+    }
+  ],
+  "result": "passed"
+}
+```
+
+Os valores de `execution_id`, hashes, duração e caminhos variam a cada
+execução. Cada item em `gates` registra o comando, o código de saída, os
+diagnósticos, o log de evidência e os arquivos produzidos pelo gate. Portanto,
+um comando como `dotnet test`, `npm test` ou um script customizado pode manter
+sua saída normal; basta retornar `0` ao concluir com sucesso e um valor
+diferente de `0` ao detectar falha.
+
+| Status do gate | Significado |
+|---|---|
+| `passed` | O comando terminou com código `0`. |
+| `failed` | O comando terminou com código diferente de `0`. |
+| `blocked` | O gate não pôde ser aprovado, por exemplo por comando vazio, timeout ou por fail-fast após uma falha obrigatória. |
+| `error` | O runner não conseguiu executar ou interpretar o resultado do comando. |
+| `skipped` | O gate foi registrado sem execução; deve permanecer visível no relatório. |
+
+O campo raiz `result` pode ser `passed`, `failed`, `blocked` ou `error`. Gates
+opcionais com falha ou bloqueio permanecem no relatório, mas não alteram o
+resultado agregado; qualquer gate obrigatório nesses estados impede a
+aprovação. Por padrão, o fail-fast bloqueia os gates seguintes após uma falha
+ou bloqueio obrigatório. Para continuar executando os demais gates:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass `
+  -File skills/spectro-gates/scripts/run_gates.ps1 `
+  -FeatureId 001-login `
+  -ContinueOnFailure
+```
+
+A árvore gerada fica semelhante a esta:
+
+```text
+.spectro/features/001-login/
+├── gates.json
+├── state.json
+└── outputs/<execution-id>/
+    ├── evidence/
+    │   ├── 01-build.log
+    │   └── 02-unit-tests.log
+    ├── build/
+    │   └── <arquivos produzidos pelo comando>
+    └── unit-tests/
+        └── <arquivos produzidos pelo comando>
+```
+
+`output_directory` e `output_files` são caminhos relativos à raiz do projeto.
+Para criar arquivos de relatório, os comandos configurados devem usar o
+diretório absoluto de `$env:SPECTRO_GATE_OUTPUT_DIR`; assim, os outputs de um
+gate não contaminam a execução de outro.
+
 Para validar um relatório existente:
 
 ```powershell
@@ -149,6 +254,15 @@ powershell -NoProfile -ExecutionPolicy Bypass `
   -File skills/spectro-gates/scripts/validate_gates.ps1 `
   -ReportPath .spectro/features/001-login/gates.json
 ```
+
+Em caso de sucesso, o validador imprime:
+
+```text
+Gate report is valid: .spectro/features/001-login/gates.json
+```
+
+e retorna código `0`. Um relatório inválido produz mensagens de erro e retorna
+código `1`.
 
 ## 6. Recupere falhas
 
