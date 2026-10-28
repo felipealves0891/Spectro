@@ -49,7 +49,7 @@ e migrar a localização das evidências para dentro de `outputs/<execution-id>/
 
 ### 3.2 Comunicação com o processo filho
 
-O `run_gates.ps1` deve passar ao `run_gate.ps1`:
+O `run_gates.mjs` deve passar ao `run_gate.mjs`:
 
 - o comando;
 - a raiz do projeto como `WorkingDirectory`;
@@ -57,8 +57,8 @@ O `run_gates.ps1` deve passar ao `run_gate.ps1`:
 - o caminho do arquivo de evidência dentro de
   `outputs/<execution-id>/evidence/`.
 
-O `run_gate.ps1` deve definir `SPECTRO_GATE_OUTPUT_DIR` dentro do job, antes da
-execução do scriptblock. O valor deve ser absoluto e específico do gate.
+O `run_gate.mjs` deve definir `SPECTRO_GATE_OUTPUT_DIR` no processo filho, antes
+da execução do comando. O valor deve ser absoluto e específico do gate.
 
 ### 3.3 Captura e inventário
 
@@ -89,7 +89,7 @@ mas relatórios novos devem exigir os campos de output.
 
 ## 4. Arquivos a alterar
 
-### 4.1 `src/skills/spectro-gates/scripts/run_gates.ps1`
+### 4.1 `src/skills/spectro-gates/scripts/run_gates.mjs`
 
 - Substituir a criação atual de `feature/evidence/<execution-id>` por
   `feature/outputs/<execution-id>`.
@@ -103,7 +103,7 @@ mas relatórios novos devem exigir os campos de output.
 - Registrar caminhos de output relativos à raiz do projeto.
 - Preservar outputs parciais para `failed`, `blocked` e `error`.
 
-### 4.2 `src/skills/spectro-gates/scripts/run_gate.ps1`
+### 4.2 `src/skills/spectro-gates/scripts/run_gate.mjs`
 
 - Adicionar o parâmetro obrigatório `OutputDirectory`.
 - Validar e resolver esse diretório antes de criar o job.
@@ -114,14 +114,14 @@ mas relatórios novos devem exigir os campos de output.
   ou erro.
 - Não considerar ausência de arquivos adicionais como falha.
 
-### 4.3 `src/skills/spectro-gates/scripts/recover.ps1`
+### 4.3 `src/skills/spectro-gates/scripts/recover.mjs`
 
 - Passar um diretório de output próprio para comandos de correção.
 - Usar a mesma execução/feature para preservar a rastreabilidade da correção.
 - Manter o log de correção dentro de `outputs/<execution-id>/evidence/` ou em
   um subdiretório de recuperação claramente identificado.
 
-### 4.4 `src/skills/spectro-gates/scripts/validate_gates.ps1`
+### 4.4 `src/skills/spectro-gates/scripts/validate_gates.mjs`
 
 - Exigir os campos de output em relatórios novos.
 - Validar que `output_directory` seja relativo à raiz do projeto e permaneça
@@ -174,11 +174,11 @@ subpasta:
 ## 6. Sequência de implementação
 
 1. Atualizar o contrato de `gates.json`.
-2. Alterar `run_gate.ps1` para receber `OutputDirectory` e definir a variável
+2. Alterar `run_gate.mjs` para receber `output-directory` e definir a variável
    de ambiente.
-3. Alterar `run_gates.ps1` para criar a nova árvore e inventariar outputs.
-4. Atualizar `recover.ps1` para usar a nova estrutura.
-5. Atualizar `validate_gates.ps1` e as regras de compatibilidade.
+3. Alterar `run_gates.mjs` para criar a nova árvore e inventariar outputs.
+4. Atualizar `recover.mjs` para usar a nova estrutura.
+5. Atualizar `validate_gates.mjs` e as regras de compatibilidade.
 6. Atualizar `SKILL.md`.
 7. Executar os cenários T-OUTPUT-001 a T-OUTPUT-010.
 8. Verificar manualmente a árvore criada, o relatório, as evidências e o

@@ -1,0 +1,17 @@
+version: "1.0"
+paths:
+  root: ".spectro"
+  features: ".spectro/features"
+  templates: ".spectro/templates"
+workflow:
+  states: [pending, running, completed, failed, blocked]
+states: [pending, running, completed, failed, blocked]
+retry_limit: 3
+recovery: {}
+gates:
+  required: [build]
+  optional: []
+  commands:
+    build: "node -e \"require('fs').writeFileSync(process.env.SPECTRO_GATE_OUTPUT_DIR + '/result.txt', 'ok')\""
+  timeout_seconds: 10
+  fail_fast: true

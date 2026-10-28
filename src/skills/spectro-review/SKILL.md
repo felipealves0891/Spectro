@@ -19,13 +19,13 @@ Use this skill after required gates pass, or when a human requests an independen
 ## Workflow
 
 1. Verify that artifacts and gate evidence refer to the same valid code revision.
-2. Prepare an independent review packet with `scripts/prepare_review.ps1`; do not rely on implementer explanations as evidence.
-3. Run `scripts/validate_traceability.ps1` and inspect uncovered requirements, acceptance criteria, and validation links.
+2. Prepare an independent review packet with `node scripts/prepare_review.mjs`; do not rely on implementer explanations as evidence.
+3. Run `node scripts/validate_traceability.mjs` and inspect uncovered requirements, acceptance criteria, and validation links.
 4. Review scope: omitted requirements, unauthorized changes, incomplete tasks, and accidental scope.
 5. Review functional behavior, errors, boundaries, invariants, architecture, maintainability, performance, tests, and security.
 6. Compare the specification, plan, tasks, code, tests, and gate results for inconsistencies.
 7. Record each finding with ID, severity, category, location, evidence, impact, recommendation, and return stage.
-8. Use `scripts/create_remediation_task.ps1` for accepted findings that require tracked work.
+8. Use `node scripts/create_remediation_task.mjs` for accepted findings that require tracked work.
 9. Create `.spectro/features/<feature-id>/review.md` with summary, artifacts examined, verified requirements, findings, residual risks, and final decision.
 
 ## Rules

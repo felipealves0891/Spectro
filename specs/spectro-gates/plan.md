@@ -21,17 +21,17 @@ skill. Nesse caso, assumir o diretório atual como `ProjectRoot` faz com que
 comandos relativos sejam executados fora do projeto. A raiz deve ser obtida a
 partir do diretório inicial capturado antes de qualquer mudança de localização:
 subir pelos ancestrais até encontrar `.spectro` e usar o diretório pai dessa
-pasta. O `run_gate.ps1` continua precisando receber essa raiz para o
-`Start-Job`, pois o job pode iniciar com um diretório diferente.
+pasta. O `run_gate.mjs` continua precisando receber essa raiz para o
+processo filho, pois o processo pode iniciar com um diretório diferente.
 
 A solução será explícita e centralizada:
 
-1. `run_gates.ps1` captura o diretório inicial imediatamente ao começar.
+1. `run_gates.mjs` captura o diretório inicial imediatamente ao começar.
 2. Se `ProjectRoot` não foi informado, procura `.spectro` no diretório inicial
    e nos ancestrais; a raiz é o diretório pai da primeira ocorrência.
-3. `run_gates.ps1` resolve e valida a raiz absoluta.
-4. O runner principal passa essa raiz ao `run_gate.ps1` em cada execução.
-5. `run_gate.ps1` recebe um parâmetro `WorkingDirectory` obrigatório para as
+3. `run_gates.mjs` resolve e valida a raiz absoluta.
+4. O runner principal passa essa raiz ao `run_gate.mjs` em cada execução.
+5. `run_gate.mjs` recebe um parâmetro `working-directory` obrigatório para as
    execuções iniciadas pelo runner principal.
 6. Dentro do job, o runner faz `Set-Location` para o diretório recebido antes de
    criar/executar o scriptblock do comando.
@@ -44,7 +44,7 @@ responsabilidade do runner.
 
 ## 3. Arquivos a alterar
 
-### 3.1 `src/skills/spectro-gates/scripts/run_gates.ps1`
+### 3.1 `src/skills/spectro-gates/scripts/run_gates.mjs`
 
 - Capturar o diretório atual na primeira instrução executável, antes de
   qualquer `Set-Location` ou resolução relativa.
@@ -54,14 +54,14 @@ responsabilidade do runner.
 - Validar que `ProjectRoot` existe e é um diretório antes de iniciar a
   execução.
 - Normalizar o caminho absoluto uma única vez.
-- Passar `-WorkingDirectory $root` ao chamar `run_gate.ps1`.
+- Passar `--working-directory $root` ao chamar `run_gate.mjs`.
 - Adicionar `project_root = $root` ao objeto raiz de `gates.json`.
 - Manter a resolução de `ConfigPath`, feature, evidências e artefatos baseada
   na mesma variável `$root`.
 - Garantir que falha na validação da raiz ocorra antes da criação da execução
   ou de qualquer gate.
 
-### 3.2 `src/skills/spectro-gates/scripts/run_gate.ps1`
+### 3.2 `src/skills/spectro-gates/scripts/run_gate.mjs`
 
 - Adicionar parâmetro de diretório de trabalho, com validação de existência.
 - Receber o valor no `Start-Job` junto com o comando.
@@ -78,7 +78,7 @@ responsabilidade do runner.
 - Registrar que o caminho representa a raiz absoluta usada pelos processos dos
   gates.
 
-### 3.4 `src/skills/spectro-gates/scripts/validate_gates.ps1`
+### 3.4 `src/skills/spectro-gates/scripts/validate_gates.mjs`
 
 - Verificar a presença e o formato de `project_root` em novos relatórios.
 - Não exigir que o caminho exista quando o relatório estiver sendo validado
@@ -151,9 +151,9 @@ Os testes devem ser determinísticos e usar um projeto temporário com:
 ## 6. Sequência de implementação
 
 1. Atualizar o contrato documentado do relatório.
-2. Alterar `run_gates.ps1` para capturar o caminho inicial e descobrir a raiz pelo `.spectro`.
-3. Alterar `run_gate.ps1` para aceitar e aplicar o diretório de trabalho.
-4. Atualizar `validate_gates.ps1` conforme a obrigatoriedade de
+2. Alterar `run_gates.mjs` para capturar o caminho inicial e descobrir a raiz pelo `.spectro`.
+3. Alterar `run_gate.mjs` para aceitar e aplicar o diretório de trabalho.
+4. Atualizar `validate_gates.mjs` conforme a obrigatoriedade de
    `project_root`.
 5. Atualizar `SKILL.md` com o comportamento operacional.
 6. Criar ou ajustar testes para os cenários T-ROOT-001 a T-ROOT-007.

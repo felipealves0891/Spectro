@@ -138,7 +138,7 @@ spectro-gates/
 │   ├── gate-contract.md
 │   └── evidence-format.md
 └── scripts/
-    ├── run_gate.ps1
+    ├── run_gate.mjs
     └── validate_gates.py
 ```
 
@@ -160,9 +160,9 @@ spectro-gates/
 
 Implementação entregue:
 
-- `skills/spectro-gates/scripts/run_gates.ps1` para executar a sequência configurada.
-- `skills/spectro-gates/scripts/run_gate.ps1` para timeout, captura de saída e exit code.
-- `skills/spectro-gates/scripts/validate_gates.ps1` para validar relatórios.
+- `skills/spectro-gates/scripts/run_gates.mjs` para executar a sequência configurada.
+- `skills/spectro-gates/scripts/run_gate.mjs` para timeout, captura de saída e exit code.
+- `skills/spectro-gates/scripts/validate_gates.mjs` para validar relatórios.
 - `.spectro/config.yaml` com gates obrigatórios/opcionais e comandos configuráveis.
 - Evidências por execução em `.spectro/features/<feature-id>/evidence/`.
 
@@ -176,9 +176,9 @@ Implementação entregue:
 
 Implementação entregue:
 
-- `skills/spectro-gates/scripts/recover.ps1` para classificar falhas, persistir `state.json`, controlar tentativas e executar correções explicitamente autorizadas.
+- `skills/spectro-gates/scripts/recover.mjs` para classificar falhas, persistir `state.json`, controlar tentativas e executar correções explicitamente autorizadas.
 - `skills/spectro-gates/references/recovery-contract.md` com o contrato do estado persistido.
-- `run_gates.ps1` agora atualiza o estado da fase Gates.
+- `run_gates.mjs` agora atualiza o estado da fase Gates.
 - Execuções anteriores permanecem armazenadas e são marcadas como invalidadas após uma recuperação.
 - O limite padrão de três tentativas bloqueia o workflow quando não há progresso.
 
@@ -191,9 +191,9 @@ Implementação entregue:
 
 Implementação entregue:
 
-- `prepare_review.ps1` cria um pacote independente com diff, manifest e hashes.
-- `validate_traceability.ps1` verifica cobertura de requisitos, critérios de aceite e tarefas.
-- `create_remediation_task.ps1` cria tarefas `TASK-REV-###` vinculadas a findings.
+- `prepare_review.mjs` cria um pacote independente com diff, manifest e hashes.
+- `validate_traceability.mjs` verifica cobertura de requisitos, critérios de aceite e tarefas.
+- `create_remediation_task.mjs` cria tarefas `TASK-REV-###` vinculadas a findings.
 - `review-contract.md` e template de review estruturam findings e decisões.
 
 ### V1 — Workflow completo — implementada
@@ -206,7 +206,7 @@ Implementação entregue:
 
 Implementação entregue:
 
-- `.spectro/scripts/workflow.ps1` para status, retomada, transições, aprovações, execução de gates e finalização.
+- `.spectro/scripts/workflow.mjs` para status, retomada, transições, aprovações, execução de gates e finalização.
 - `.spectro/references/workflow-contract.md` com os comandos e contratos da orquestração.
 - Estado persistido em `state.json` e histórico append-only em `events.jsonl`.
 - Transições protegidas por artefatos, gates aprovados e aprovações humanas configuradas.

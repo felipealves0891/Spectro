@@ -32,7 +32,7 @@ Use this skill after implementation or after a correction that invalidates prior
 - Do not silently skip a configured required gate.
 - Distinguish implementation defects, test defects, environment failures, specification gaps, and planning defects.
 - After any code or configuration change, invalidate and rerun affected gates.
-- Use `scripts/recover.ps1` after a failed execution to classify the failure, enforce the retry limit, persist state, and optionally run an explicitly authorized correction command.
+- Use `node scripts/recover.mjs` after a failed execution to classify the failure, enforce the retry limit, persist state, and optionally run an explicitly authorized correction command.
 
 ## Completion
 
@@ -40,14 +40,14 @@ Report the gates result, failed or blocked diagnostics, evidence paths, aggregat
 
 ## Local runner
 
-Use `scripts/run_gates.ps1` from the repository root:
+Use `node scripts/run_gates.mjs` from the repository root:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File skills/spectro-gates/scripts/run_gates.ps1 `
-  -FeatureId 001-feature-name
+```text
+node skills/spectro-gates/scripts/run_gates.mjs \
+  --feature-id 001-feature-name
 ```
 
-Configure commands in `.spectro/config.yaml` under `gates.commands`. An empty command produces a visible `blocked` result; it is never treated as a pass. Validate an existing report with `scripts/validate_gates.ps1`.
+Configure commands in `.spectro/config.yaml` under `gates.commands`. An empty command produces a visible `blocked` result; it is never treated as a pass. Validate an existing report with `node scripts/validate_gates.mjs --report-path <path>`.
 
 Every configured command runs with the resolved project root as its working directory. When `ProjectRoot` is omitted, the runner finds the nearest ancestor `.spectro` directory from the initial working directory and uses its parent as the project root. Relative paths in gate commands therefore resolve from the project root, not from the skill directory, feature directory, or caller's current directory. The generated `gates.json` records this absolute path as `project_root`.
 

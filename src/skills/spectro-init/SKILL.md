@@ -18,10 +18,10 @@ Use this skill when a project needs the shared `.spectro` structure before using
 
 1. Resolve and normalize the workspace path. Refuse missing paths, files, traversal, and destinations outside the workspace.
 2. Read [init-contract.md](references/init-contract.md) and [config-schema.md](references/config-schema.md).
-3. Run `scripts/init_spectro.ps1` with the workspace and requested options. The script uses only the assets shipped with this skill.
+3. Run `node scripts/init_spectro.mjs` with the workspace and requested options. The script uses only the assets shipped with this skill.
 4. Create or validate `.spectro`, `templates`, and `features`.
 5. Preserve existing files by default. Treat unknown files as user data; never delete them.
-6. Validate the result with `scripts/validate_spectro.ps1` and return the structured report.
+6. Validate the result with `node scripts/validate_spectro.mjs --workspace-path <workspace> --as-object` and return the structured report.
 
 ## Rules
 

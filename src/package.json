@@ -1,0 +1,8 @@
+{
+  "name": "spectro-skills-runtime",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  }
+}

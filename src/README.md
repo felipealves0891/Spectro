@@ -8,7 +8,7 @@ Cada fase produz artefatos locais. O workflow só pode ser concluído quando os 
 
 ## Pré-requisitos
 
-- PowerShell 5.1 ou PowerShell 7+.
+- Node.js 22 LTS ou superior.
 - As ferramentas de build, análise e testes do projeto instaladas localmente.
 - As skills disponíveis no agente consumidor. Neste repositório, elas ficam em `skills/`.
 
@@ -26,7 +26,7 @@ skills/
 .spectro/
 ├── constitution.md
 ├── config.yaml
-├── scripts/workflow.ps1
+├── scripts/workflow.mjs
 ├── templates/
 └── features/<feature-id>/
 ```
@@ -80,57 +80,52 @@ Os artefatos ficam em:
 
 ## 3. Controle o workflow
 
-O controlador persistente fica em `.spectro/scripts/workflow.ps1`.
+O controlador persistente fica em `.spectro/scripts/workflow.mjs`.
 
 Consultar o estado:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass `
-  -File .spectro/scripts/workflow.ps1 `
-  -Action status `
-  -FeatureId 001-login
+```text
+node .spectro/scripts/workflow.mjs \
+  --action status \
+  --feature-id 001-login
 ```
 
 Retomar uma execução interrompida:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass `
-  -File .spectro/scripts/workflow.ps1 `
-  -Action resume `
-  -FeatureId 001-login
+```text
+node .spectro/scripts/workflow.mjs \
+  --action resume \
+  --feature-id 001-login
 ```
 
 Avançar uma fase após os artefatos necessários estarem prontos:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass `
-  -File .spectro/scripts/workflow.ps1 `
-  -Action transition `
-  -FeatureId 001-login `
-  -TargetPhase plan
+```text
+node .spectro/scripts/workflow.mjs \
+  --action transition \
+  --feature-id 001-login \
+  --target-phase plan
 ```
 
 ## 4. Registre aprovações humanas
 
 As fases que exigem aprovação são configuradas em `workflow.human_approval_stages`.
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass `
-  -File .spectro/scripts/workflow.ps1 `
-  -Action approve `
-  -FeatureId 001-login `
-  -ApprovalStage plan `
-  -ApprovedBy "Nome do aprovador" `
-  -Note "Plano revisado e aprovado"
+```text
+node .spectro/scripts/workflow.mjs \
+  --action approve \
+  --feature-id 001-login \
+  --approval-stage plan \
+  --approved-by "Nome do aprovador" \
+  --note "Plano revisado e aprovado"
 ```
 
 ## 5. Execute os gates
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass `
-  -File .spectro/scripts/workflow.ps1 `
-  -Action run-gates `
-  -FeatureId 001-login
+```text
+node .spectro/scripts/workflow.mjs \
+  --action run-gates \
+  --feature-id 001-login
 ```
 
 O resultado fica em `gates.json`. Os outputs dos gates e as evidências ficam em:
@@ -219,11 +214,10 @@ resultado agregado; qualquer gate obrigatório nesses estados impede a
 aprovação. Por padrão, o fail-fast bloqueia os gates seguintes após uma falha
 ou bloqueio obrigatório. Para continuar executando os demais gates:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass `
-  -File skills/spectro-gates/scripts/run_gates.ps1 `
-  -FeatureId 001-login `
-  -ContinueOnFailure
+```text
+node skills/spectro-gates/scripts/run_gates.mjs \
+  --feature-id 001-login \
+  --continue-on-failure
 ```
 
 A árvore gerada fica semelhante a esta:
@@ -244,15 +238,14 @@ A árvore gerada fica semelhante a esta:
 
 `output_directory` e `output_files` são caminhos relativos à raiz do projeto.
 Para criar arquivos de relatório, os comandos configurados devem usar o
-diretório absoluto de `$env:SPECTRO_GATE_OUTPUT_DIR`; assim, os outputs de um
+diretório absoluto de `SPECTRO_GATE_OUTPUT_DIR`; assim, os outputs de um
 gate não contaminam a execução de outro.
 
 Para validar um relatório existente:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass `
-  -File skills/spectro-gates/scripts/validate_gates.ps1 `
-  -ReportPath .spectro/features/001-login/gates.json
+```text
+node skills/spectro-gates/scripts/validate_gates.mjs \
+  --report-path .spectro/features/001-login/gates.json
 ```
 
 Em caso de sucesso, o validador imprime:
@@ -266,13 +259,12 @@ código `1`.
 
 ## 6. Recupere falhas
 
-Use `recover.ps1` para classificar uma falha, persistir o estado, controlar tentativas e invalidar evidências antigas:
+Use `recover.mjs` para classificar uma falha, persistir o estado, controlar tentativas e invalidar evidências antigas:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass `
-  -File skills/spectro-gates/scripts/recover.ps1 `
-  -FeatureId 001-login `
-  -FailureCategory implementation-defect
+```text
+node skills/spectro-gates/scripts/recover.mjs \
+  --feature-id 001-login \
+  --failure-category implementation-defect
 ```
 
 Categorias disponíveis:
@@ -286,13 +278,12 @@ Categorias disponíveis:
 
 Correções automáticas exigem um comando explícito:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass `
-  -File skills/spectro-gates/scripts/recover.ps1 `
-  -FeatureId 001-login `
-  -FailureCategory environment-failure `
-  -CorrectionCommand "docker compose up -d db" `
-  -ResumeGates
+```text
+node skills/spectro-gates/scripts/recover.mjs \
+  --feature-id 001-login \
+  --failure-category environment-failure \
+  --correction-command "docker compose up -d db" \
+  --resume-gates
 ```
 
 O estado e o histórico ficam em `state.json` e `events.jsonl`. O limite padrão é de três tentativas por diagnóstico.
@@ -301,48 +292,43 @@ O estado e o histórico ficam em `state.json` e `events.jsonl`. O limite padrão
 
 Crie um pacote independente com diff, hashes e manifest:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass `
-  -File skills/spectro-review/scripts/prepare_review.ps1 `
-  -FeatureId 001-login
+```text
+node skills/spectro-review/scripts/prepare_review.mjs \
+  --feature-id 001-login
 ```
 
 Valide a rastreabilidade:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass `
-  -File skills/spectro-review/scripts/validate_traceability.ps1 `
-  -FeatureId 001-login
+```text
+node skills/spectro-review/scripts/validate_traceability.mjs \
+  --feature-id 001-login
 ```
 
 A review deve produzir `.spectro/features/001-login/review.md`. Para criar uma tarefa de correção vinculada a um finding:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass `
-  -File skills/spectro-review/scripts/create_remediation_task.ps1 `
-  -FeatureId 001-login `
-  -FindingId FINDING-001 `
-  -Severity High `
-  -Description "Corrigir validação de autorização" `
-  -ReturnStage implement
+```text
+node skills/spectro-review/scripts/create_remediation_task.mjs \
+  --feature-id 001-login \
+  --finding-id FINDING-001 \
+  --severity High \
+  --description "Corrigir validação de autorização" \
+  --return-stage implement
 ```
 
 ## 8. Finalize
 
 A finalização exige gates aprovados, `review.md` com decisão `approved` e as aprovações configuradas:
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass `
-  -File .spectro/scripts/workflow.ps1 `
-  -Action approve `
-  -FeatureId 001-login `
-  -ApprovalStage completed `
-  -ApprovedBy "Nome do aprovador"
+```text
+node .spectro/scripts/workflow.mjs \
+  --action approve \
+  --feature-id 001-login \
+  --approval-stage completed \
+  --approved-by "Nome do aprovador"
 
-powershell -NoProfile -ExecutionPolicy Bypass `
-  -File .spectro/scripts/workflow.ps1 `
-  -Action finalize `
-  -FeatureId 001-login
+node .spectro/scripts/workflow.mjs \
+  --action finalize \
+  --feature-id 001-login
 ```
 
 O relatório final será salvo em:

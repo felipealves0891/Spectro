@@ -26,8 +26,8 @@ src/skills/spectro-init/
 │   ├── init-contract.md
 │   └── config-schema.md
 ├── scripts/
-│   ├── init_spectro.ps1
-│   └── validate_spectro.ps1
+│   ├── init_spectro.mjs
+│   └── validate_spectro.mjs
 └── assets/
     ├── constitution.md
     ├── config.yaml
@@ -43,9 +43,9 @@ O `SKILL.md` deverá orientar a descoberta do workspace, a escolha das opções,
 
 Os arquivos em `assets/` serão tratados como conteúdo de distribuição. Eles não são comandos e não deverão ser executados.
 
-### 2.2 PowerShell como runner local
+### 2.2 Node.js como runner local
 
-Como o repositório já possui automações locais em PowerShell, o runner será implementado em PowerShell sem depender de ferramentas externas para criar diretórios, copiar arquivos ou comparar metadados.
+O runner será implementado em Node.js 22 LTS ou superior, usando APIs nativas para criar diretórios, copiar arquivos e comparar metadados sem depender de um shell específico.
 
 A validação de YAML deverá usar o mecanismo disponível no ambiente do executor. Caso não exista parser YAML disponível, o script deve realizar apenas validações determinísticas compatíveis com o contrato definido e retornar `blocked` para validações que exigirem um parser ausente; não deve aceitar sintaxe inválida silenciosamente.
 
